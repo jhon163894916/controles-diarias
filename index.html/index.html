@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Diárias</title>
+
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --primary: #22c55e;
+  --danger: #ef4444;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 16px;
+  text-align: center;
+  background: #020617;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.container {
+  padding: 16px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.card {
+  background: var(--card);
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: none;
+  font-size: 16px;
+}
+
+input {
+  background: #020617;
+  color: var(--text);
+}
+
+button {
+  background: var(--primary);
+  color: #022c22;
+  font-weight: bold;
+}
+
+button.delete {
+  background: var(--danger);
+  color: #fff;
+}
+
+button.secondary {
+  background: #334155;
+  color: #fff;
+}
+
+.total-box {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.small {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.actions button {
+  flex: 1;
+}
+</style>
+</head>
+
+<body>
+
+<header>Controle de Diárias</header>
+
+<div class="container">
+
+  <!-- FORMULÁRIO -->
+  <div class="card">
+    <input type="date" id="data">
+    <input type="number" id="diaria" placeholder="Valor da diária">
+    <input type="number" id="extra" placeholder="Hora extra (R$)">
+    <input type="text" id="obs" placeholder="Observação">
+    <button onclick="salvar()">Salvar diária</button>
+  </div>
+
+  <!-- TOTAIS -->
+  <div class="card total-box">
+    <span>Total geral</span>
+    <span id="totalGeral">R$ 0,00</span>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="lista"></div>
+
+</div>
+
+<script>
+let diarias = JSON.parse(localStorage.getItem("diarias")) || [];
+let editIndex = null;
+
+document.getElementById("data").valueAsDate = new Date();
+
+function salvar() {
+  const data = dataInput().value;
+  const diaria = number("diaria");
+  const extra = number("extra");
+  const obs = obsInput().value;
+
+  const item = { data, diaria, extra, obs };
+
+  if (editIndex === null) {
+    diarias.push(item);
+  } else {
+    diarias[editIndex] = item;
+    editIndex = null;
+  }
+
+  persist();
+  limpar();
+  render();
+}
+
+function editar(i) {
+  const d = diarias[i];
+  dataInput().value = d.data;
+  diariaInput().value = d.diaria;
+  extraInput().value = d.extra;
+  obsInput().value = d.obs;
+  editIndex = i;
+}
+
+function excluir(i) {
+  if (!confirm("Excluir essa diária?")) return;
+  diarias.splice(i, 1);
+  persist();
+  render();
+}
+
+function render() {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+  let total = 0;
+
+  diarias.forEach((d, i) => {
+    const soma = d.diaria + d.extra;
+    total += soma;
+
+    lista.innerHTML += `
+      <div class="card">
+        <div><b>R$ ${soma.toFixed(2)}</b></div>
+        <div class="small">${formatarData(d.data)} — ${d.obs || ""}</div>
+        <div class="small">Diária: R$ ${d.diaria.toFixed(2)} | Extra: R$ ${d.extra.toFixed(2)}</div>
+        <div class="actions">
+          <button class="secondary" onclick="editar(${i})">Editar</button>
+          <button class="delete" onclick="excluir(${i})">Excluir</button>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("totalGeral").innerText =
+    "R$ " + total.toFixed(2);
+}
+
+function persist() {
+  localStorage.setItem("diarias", JSON.stringify(diarias));
+}
+
+function limpar() {
+  diariaInput().value = "";
+  extraInput().value = "";
+  obsInput().value = "";
+  dataInput().valueAsDate = new Date();
+}
+
+function number(id) {
+  return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function diariaInput() { return document.getElementById("diaria"); }
+function extraInput() { return document.getElementById("extra"); }
+function obsInput() { return document.getElementById("obs"); }
+function dataInput() { return document.getElementById("data"); }
+
+function formatarData(d) {
+  const [y, m, dia] = d.split("-");
+  return `${dia}/${m}/${y}`;
+}
+
+render();
+</script>
+
+</body>
+</html>
